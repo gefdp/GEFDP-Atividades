@@ -40,6 +40,25 @@ export default function Profile() {
     },
   });
 
+  const resizeToSquare = (file, size = 400) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        canvas.toBlob((blob) => resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" })), "image/jpeg", 0.92);
+      };
+      img.src = url;
+    });
+
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -47,7 +66,8 @@ export default function Profile() {
     setUploading(true);
 
     try {
-      const { file_url } = await uploadFile(file, "avatars");
+      const resized = await resizeToSquare(file, 400);
+      const { file_url } = await uploadFile(resized, "avatars");
       await updateProfile({ avatar_url: file_url });
 
       if (user?.email) {
@@ -89,7 +109,7 @@ export default function Profile() {
         <div className="flex items-center gap-5">
           <div className="relative">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.avatar_url} />
+              <AvatarImage src={user?.avatar_url} className="object-cover" />
               <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
                 {initials}
               </AvatarFallback>
