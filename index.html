@@ -2,6 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        var p = window.location.search.match(/[?&]p=([^&]*)/);
+        if (p) {
+          window.history.replaceState(null, null,
+            window.location.pathname.split('/').slice(0, 2).join('/') + '/' +
+            decodeURIComponent(p[1])
+          );
+        }
+      })();
+    </script>
     <meta name="theme-color" content="#3f7f73" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
