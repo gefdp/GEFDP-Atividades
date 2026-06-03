@@ -109,7 +109,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
                   👑
                 </span>
               )}
-              <Avatar className="w-20 h-20 ring-2 ring-border group-hover:ring-primary transition-all duration-200 shadow-lg">
+              <Avatar className="w-40 h-40 ring-2 ring-border group-hover:ring-primary transition-all duration-200 shadow-lg">
                 <AvatarImage src={user?.avatar_url} className="object-cover" />
                 <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
                   {initials}
