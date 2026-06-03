@@ -1,21 +1,11 @@
-﻿import React from "react";
+import React from "react";
 import { db } from "@/services/dataService";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, ShieldAlert, Shield, User, Code2 } from "lucide-react";
+import { Trophy, ShieldAlert } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { managedRoles, roleLabels } from "@/services/accessService";
-
-const roleIcons = {
-  developer: Code2,
-  admin: Shield,
-  user: User,
-};
 
 function getInitials(name, email) {
   return name
@@ -24,9 +14,7 @@ function getInitials(name, email) {
 }
 
 export default function TeamReport() {
-  const { user, isAdmin, isLoading: loadingUser } = useCurrentUser();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { isAdmin, isLoading: loadingUser } = useCurrentUser();
 
   const { data: allActivities = [], isLoading } = useQuery({
     queryKey: ["activities"],
@@ -39,22 +27,6 @@ export default function TeamReport() {
     queryFn: () => db.entities.User.list("full_name", 500),
     staleTime: 60 * 1000,
     enabled: isAdmin,
-  });
-
-  const changeRoleMutation = useMutation({
-    mutationFn: ({ userId, role }) => db.entities.User.update(userId, { role }),
-    onSuccess: (_, { role }) => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-      toast({ title: `Perfil atualizado para ${roleLabels[role] || "Usuário"}` });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   if (loadingUser || isLoading || loadingUsers) {
@@ -149,10 +121,7 @@ export default function TeamReport() {
 
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Membros da equipe</h3>
-            <p className="text-xs text-muted-foreground">Altere o perfil diretamente na coluna Acesso</p>
-          </div>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Membros da equipe</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -164,7 +133,6 @@ export default function TeamReport() {
                 <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3">Em progresso</th>
                 <th className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3">Pendentes</th>
                 <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3">Taxa</th>
-                <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3">Acesso</th>
               </tr>
             </thead>
             <tbody>
@@ -224,35 +192,6 @@ export default function TeamReport() {
                       </div>
                       <span className="text-xs font-semibold text-muted-foreground w-8">{member.rate}%</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    {member.id === user?.id ? (
-                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
-                        {roleLabels[member.role] || "Usuário"} (você)
-                      </Badge>
-                    ) : (
-                      <Select
-                        value={managedRoles.includes(member.role) ? member.role : "user"}
-                        onValueChange={(role) => changeRoleMutation.mutate({ userId: member.id, role })}
-                      >
-                        <SelectTrigger className="w-40 h-8 text-xs rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {managedRoles.map((role) => {
-                            const Icon = roleIcons[role] || User;
-                            return (
-                              <SelectItem key={role} value={role}>
-                                <div className="flex items-center gap-2">
-                                  <Icon className="w-3.5 h-3.5 text-primary" />
-                                  {roleLabels[role]}
-                                </div>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    )}
                   </td>
                 </motion.tr>
               ))}
