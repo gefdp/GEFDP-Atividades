@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import path from "node:path";
 
 export default defineConfig({
-  base: process.env.VITE_GITHUB_PAGES_BASE || "/",
+  base: process.env.NODE_ENV === "production" ? "/GEFDP-Atividades/" : "/",
   plugins: [react()],
   resolve: {
     alias: {
