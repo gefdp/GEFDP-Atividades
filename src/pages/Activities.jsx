@@ -28,7 +28,7 @@ export default function Activities() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user, isAdmin } = useCurrentUser();
+  const { user, isAdmin, isDeveloper } = useCurrentUser();
 
   useEffect(() => {
     if (!assigneeInitialized.current && user?.email && !isAdmin) {
@@ -227,6 +227,38 @@ export default function Activities() {
       return 0;
     });
 
+  // When showing all assignees, group activities with same title+creator+date into one card
+  let displayActivities = filtered;
+  if (assigneeFilter === "all") {
+    const map = new Map();
+    filtered.forEach((a) => {
+      const key = `${(a.title || "").toLowerCase().trim()}||${a.created_by || ""}||${a.due_date || ""}`;
+      if (!map.has(key)) {
+        const userInfo = effectiveUsers.find((u) => u.email === a.assigned_to);
+        map.set(key, {
+          ...a,
+          collaborators: [
+            {
+              email: a.assigned_to,
+              name: a.assigned_to_name || a.assigned_to,
+              avatar_url: userInfo?.avatar_url,
+              primary: true,
+            },
+          ],
+        });
+      } else {
+        const userInfo = effectiveUsers.find((u) => u.email === a.assigned_to);
+        map.get(key).collaborators.push({
+          email: a.assigned_to,
+          name: a.assigned_to_name || a.assigned_to,
+          avatar_url: userInfo?.avatar_url,
+          primary: false,
+        });
+      }
+    });
+    displayActivities = Array.from(map.values());
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -315,8 +347,9 @@ export default function Activities() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         <div className="xl:col-span-1">
           <ActivityTimeline
-            activities={filtered}
+            activities={displayActivities}
             isAdmin={isAdmin}
+            isDeveloper={isDeveloper}
             onEdit={(a) => { setEditActivity(a); setShowForm(true); }}
             onDelete={(a) => deleteMutation.mutate(a.id)}
             onStatusChange={handleStatusChange}

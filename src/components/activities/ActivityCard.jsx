@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, MoreVertical, Pencil, Play, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Clock, MoreVertical, Pencil, Play, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,31 +38,51 @@ export default function ActivityCard({
   onEdit,
   onDelete,
   onStatusChange,
-  isAdmin,
+  isDeveloper,
   onComplete,
   currentUser,
   users,
   onUpdate,
   onSelect,
   isSelected,
+  collaborators = [],
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const isDone = activity.status === "concluida";
   const currentIdx = STATUS_ORDER.indexOf(activity.status);
   const canAdvance = currentIdx < STATUS_ORDER.length - 1;
   const canGoBack = currentIdx > 0;
   const isFullyVerified = activity.verified_by_owner && activity.verified_by_requester;
 
-  const assignedUser = users?.find((u) => u.email === activity.assigned_to);
-  const assignedInitials = activity.assigned_to_name
-    ? activity.assigned_to_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-    : activity.assigned_to?.[0]?.toUpperCase() || "?";
+  const isOwnActivity =
+    currentUser?.email === activity.assigned_to ||
+    currentUser?.email === activity.created_by;
+  const canManage = isDeveloper || isOwnActivity;
 
-  const creatorUser = users?.find((u) => u.email === activity.created_by);
-  const creatorName = creatorUser?.full_name || activity.created_by?.split("@")[0] || "";
-  const creatorInitials = creatorName
-    ? creatorName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
-  const showCreator = activity.created_by && activity.created_by !== activity.assigned_to;
+  // Build collaborators list for display
+  const displayCollaborators = collaborators.length > 0
+    ? collaborators
+    : [
+        activity.assigned_to
+          ? {
+              email: activity.assigned_to,
+              name: activity.assigned_to_name || activity.assigned_to,
+              avatar_url: users?.find((u) => u.email === activity.assigned_to)?.avatar_url,
+              primary: true,
+            }
+          : null,
+        activity.created_by && activity.created_by !== activity.assigned_to
+          ? {
+              email: activity.created_by,
+              name:
+                users?.find((u) => u.email === activity.created_by)?.full_name ||
+                activity.created_by.split("@")[0],
+              avatar_url: users?.find((u) => u.email === activity.created_by)?.avatar_url,
+              primary: false,
+            }
+          : null,
+      ].filter(Boolean);
 
   const advanceStatus = () => {
     if (!canAdvance) return;
@@ -119,46 +139,46 @@ export default function ActivityCard({
                 {format(new Date(activity.due_date + "T00:00:00"), "dd MMM", { locale: ptBR })}
               </span>
             )}
-            <span className="text-xs font-bold text-primary ml-auto">+{activity.points || 10}pts</span>
+            <span className="text-xs font-bold text-primary">+{activity.points || 10}pts</span>
             {activity.mood_emoji && <span className="text-base" title="Humor ao concluir">{activity.mood_emoji}</span>}
             {isFullyVerified && <span className="text-xs text-green-600 font-semibold">Verificada</span>}
+            <button
+              onClick={(e) => { e.stopPropagation(); setDetailsOpen((o) => !o); }}
+              className="ml-auto p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+              title={detailsOpen ? "Recolher detalhes" : "Expandir detalhes"}
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${detailsOpen ? "rotate-180" : ""}`} />
+            </button>
           </div>
 
-          <ActivityAttachments
-            activity={activity}
-            currentUser={currentUser}
-            users={users}
-            onUpdate={onUpdate ? (data) => onUpdate(activity.id, data) : undefined}
-          />
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          {showCreator && (
-            <div className="flex flex-col items-center gap-1" title={`Criado por: ${creatorName}`}>
-              <Avatar className="w-12 h-12 ring-2 ring-border shadow-sm">
-                <AvatarImage src={creatorUser?.avatar_url} className="object-cover" />
-                <AvatarFallback className="text-sm bg-muted text-muted-foreground font-bold">
-                  {creatorInitials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[10px] text-muted-foreground max-w-[56px] truncate text-center leading-tight">
-                {creatorName.split(" ")[0]}
-              </span>
+          {displayCollaborators.length > 0 && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {displayCollaborators.map((c) => {
+                const initials = c.name
+                  ? c.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+                  : "?";
+                return (
+                  <div key={c.email} className="flex items-center gap-1" title={c.name}>
+                    <Avatar className={`w-6 h-6 ring-1 ${c.primary ? "ring-primary/50" : "ring-border"}`}>
+                      <AvatarImage src={c.avatar_url} className="object-cover" />
+                      <AvatarFallback className={`text-[9px] font-bold ${c.primary ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-[10px] text-muted-foreground">{c.name?.split(" ")[0]}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {activity.assigned_to && (
-            <div className="flex flex-col items-center gap-1" title={`Responsável: ${activity.assigned_to_name || activity.assigned_to}`}>
-              <Avatar className="w-14 h-14 ring-2 ring-primary/40 shadow-md">
-                <AvatarImage src={assignedUser?.avatar_url} className="object-cover" />
-                <AvatarFallback className="text-base bg-primary/10 text-primary font-bold">
-                  {assignedInitials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[11px] font-medium text-muted-foreground max-w-[60px] truncate text-center leading-tight">
-                {activity.assigned_to_name?.split(" ")[0] || activity.assigned_to.split("@")[0]}
-              </span>
-            </div>
+          {detailsOpen && onUpdate && (
+            <ActivityAttachments
+              activity={activity}
+              currentUser={currentUser}
+              users={users}
+              onUpdate={(data) => onUpdate(activity.id, data)}
+            />
           )}
         </div>
 
@@ -179,7 +199,7 @@ export default function ActivityCard({
                 <ArrowLeft className="w-4 h-4 mr-2" /> Retroceder Status
               </DropdownMenuItem>
             )}
-            {isAdmin && activity.status !== "concluida" && (
+            {canManage && activity.status !== "concluida" && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onEdit(activity)}>
@@ -187,7 +207,7 @@ export default function ActivityCard({
                 </DropdownMenuItem>
               </>
             )}
-            {isAdmin && (
+            {canManage && (
               <DropdownMenuItem onClick={() => onDelete(activity)} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" /> Excluir
               </DropdownMenuItem>

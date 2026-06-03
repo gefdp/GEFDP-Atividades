@@ -15,7 +15,6 @@ function groupByDate(activities) {
     groups[key].push(a);
   });
 
-  // Sort keys ascending
   const sorted = Object.keys(groups).sort((a, b) => (a < b ? -1 : 1));
   return { sorted, groups, withoutDate };
 }
@@ -35,7 +34,20 @@ function dateLabelClass(dateStr) {
   return "text-muted-foreground font-semibold";
 }
 
-export default function ActivityTimeline({ activities, isAdmin, onEdit, onDelete, onStatusChange, onComplete, currentUser, users, onUpdate, onSelect, selectedActivityId }) {
+export default function ActivityTimeline({
+  activities,
+  isAdmin,
+  isDeveloper,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onComplete,
+  currentUser,
+  users,
+  onUpdate,
+  onSelect,
+  selectedActivityId,
+}) {
   const { sorted, groups, withoutDate } = groupByDate(activities);
 
   if (activities.length === 0) {
@@ -49,6 +61,24 @@ export default function ActivityTimeline({ activities, isAdmin, onEdit, onDelete
     );
   }
 
+  const renderCard = (activity) => (
+    <ActivityCard
+      key={activity.id}
+      activity={activity}
+      isDeveloper={isDeveloper}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onStatusChange={onStatusChange}
+      onComplete={onComplete}
+      currentUser={currentUser}
+      users={users}
+      onUpdate={onUpdate}
+      onSelect={onSelect}
+      isSelected={selectedActivityId === activity.id}
+      collaborators={activity.collaborators}
+    />
+  );
+
   return (
     <div className="space-y-6">
       <AnimatePresence>
@@ -59,51 +89,23 @@ export default function ActivityTimeline({ activities, isAdmin, onEdit, onDelete
                 {dateLabel(dateKey)}
               </span>
               <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">{groups[dateKey].length} atividade{groups[dateKey].length !== 1 ? "s" : ""}</span>
+              <span className="text-xs text-muted-foreground">
+                {groups[dateKey].length} atividade{groups[dateKey].length !== 1 ? "s" : ""}
+              </span>
             </div>
             <div className="space-y-2 pl-2 border-l-2 border-border">
-              {groups[dateKey].map((activity) => (
-                <ActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  isAdmin={isAdmin}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onStatusChange={onStatusChange}
-                  onComplete={onComplete}
-                  currentUser={currentUser}
-                  users={users}
-                  onUpdate={onUpdate}
-                  onSelect={onSelect}
-                  isSelected={selectedActivityId === activity.id}
-                  />
-                  ))}
-                  </div>
-                  </div>
-                  ))}
-                  {withoutDate.length > 0 && (
-                  <div>
-                  <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Sem data</span>
-                  <div className="flex-1 h-px bg-border" />
-                  </div>
-                  <div className="space-y-2 pl-2 border-l-2 border-border">
-                  {withoutDate.map((activity) => (
-                  <ActivityCard
-                   key={activity.id}
-                   activity={activity}
-                   isAdmin={isAdmin}
-                   onEdit={onEdit}
-                   onDelete={onDelete}
-                   onStatusChange={onStatusChange}
-                   onComplete={onComplete}
-                   currentUser={currentUser}
-                   users={users}
-                   onUpdate={onUpdate}
-                   onSelect={onSelect}
-                   isSelected={selectedActivityId === activity.id}
-                  />
-              ))}
+              {groups[dateKey].map(renderCard)}
+            </div>
+          </div>
+        ))}
+        {withoutDate.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Sem data</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="space-y-2 pl-2 border-l-2 border-border">
+              {withoutDate.map(renderCard)}
             </div>
           </div>
         )}
