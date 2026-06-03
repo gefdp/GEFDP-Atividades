@@ -46,6 +46,7 @@ export default function AccessManagement() {
     queryKey: ["access-credentials"],
     queryFn: listTeamPasswords,
     staleTime: 30 * 1000,
+    enabled: isDeveloper,
   });
 
   const passwordByEmail = credentials.reduce((acc, credential) => {
@@ -268,7 +269,7 @@ export default function AccessManagement() {
                   <TableHead>Nome</TableHead>
                   <TableHead>E-mail</TableHead>
                   <TableHead>Perfil</TableHead>
-                  <TableHead className="text-right">Senha</TableHead>
+                  {isDeveloper && <TableHead className="text-right">Senha</TableHead>}
                   {isDeveloper && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -324,46 +325,48 @@ export default function AccessManagement() {
                           </Select>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {isEditing ? (
-                          <Input
-                            type="text"
-                            value={editForm.password}
-                            onChange={(event) => setEditForm({ ...editForm, password: event.target.value })}
-                            placeholder="Senha"
-                            className="ml-auto min-w-36 max-w-44 font-mono text-xs"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="min-w-[120px] max-w-[160px] truncate rounded-md bg-muted px-2 py-1 text-left font-mono text-xs">
-                              {savedPassword ? (visiblePasswords[memberEmail] ? savedPassword : "********") : "Sem senha"}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              title={visiblePasswords[memberEmail] ? "Ocultar senha" : "Visualizar senha"}
-                              aria-label={visiblePasswords[memberEmail] ? "Ocultar senha" : "Visualizar senha"}
-                              disabled={!savedPassword}
-                              onClick={() => setVisiblePasswords((current) => ({
-                                ...current,
-                                [memberEmail]: !current[memberEmail],
-                              }))}
-                            >
-                              {visiblePasswords[memberEmail] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              title="Copiar senha"
-                              aria-label="Copiar senha"
-                              disabled={!savedPassword}
-                              onClick={() => copyPassword(savedPassword)}
-                            >
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
+                      {isDeveloper && (
+                        <TableCell className="text-right">
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              value={editForm.password}
+                              onChange={(event) => setEditForm({ ...editForm, password: event.target.value })}
+                              placeholder="Senha"
+                              className="ml-auto min-w-36 max-w-44 font-mono text-xs"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="min-w-[120px] max-w-[160px] truncate rounded-md bg-muted px-2 py-1 text-left font-mono text-xs">
+                                {savedPassword ? (visiblePasswords[memberEmail] ? savedPassword : "********") : "Sem senha"}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                title={visiblePasswords[memberEmail] ? "Ocultar senha" : "Visualizar senha"}
+                                aria-label={visiblePasswords[memberEmail] ? "Ocultar senha" : "Visualizar senha"}
+                                disabled={!savedPassword}
+                                onClick={() => setVisiblePasswords((current) => ({
+                                  ...current,
+                                  [memberEmail]: !current[memberEmail],
+                                }))}
+                              >
+                                {visiblePasswords[memberEmail] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                title="Copiar senha"
+                                aria-label="Copiar senha"
+                                disabled={!savedPassword}
+                                onClick={() => copyPassword(savedPassword)}
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
                       {isDeveloper && (
                         <TableCell className="text-right">
                           {isEditing ? (
