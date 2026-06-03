@@ -6,10 +6,8 @@
       (function() {
         var p = window.location.search.match(/[?&]p=([^&]*)/);
         if (p) {
-          window.history.replaceState(null, null,
-            window.location.pathname.split('/').slice(0, 2).join('/') + '/' +
-            decodeURIComponent(p[1])
-          );
+          var base = window.location.pathname.split('/').slice(0, 2).join('/');
+          window.history.replaceState(null, null, base + decodeURIComponent(p[1]));
         }
       })();
     </script>
