@@ -170,7 +170,7 @@ export default function AccessManagement() {
           Gerenciamento de Acessos
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Área restrita ao administrador e desenvolvedor para criar logins e ajustar permissões da equipe.
+          Área restrita ao desenvolvedor para criar logins e ajustar permissões da equipe.
         </p>
       </div>
 
