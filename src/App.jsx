@@ -14,7 +14,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Activities from './pages/Activities';
 import Productivity from './pages/Productivity';
-import Rewards from './pages/Rewards';
+import Achievements from './pages/Achievements';
 import TeamReport from './pages/TeamReport';
 import Profile from './pages/Profile';
 import Events from './pages/Events';
@@ -70,7 +70,7 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<Dashboard />} />
           <Route path="/atividades" element={<Activities />} />
           <Route path="/produtividade" element={<Productivity />} />
-          <Route path="/recompensas" element={<Rewards />} />
+          <Route path="/conquistas" element={<Achievements />} />
           <Route path="/relatorio" element={<AdminRoute><TeamReport /></AdminRoute>} />
           <Route path="/perfil" element={<Profile />} />
           <Route path="/eventos" element={<Events />} />

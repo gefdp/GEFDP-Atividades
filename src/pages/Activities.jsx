@@ -96,7 +96,6 @@ export default function Activities() {
     mutationFn: ({ id, data }) => db.entities.Activity.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activities"] });
-      queryClient.invalidateQueries({ queryKey: ["rewards"] });
       setShowForm(false);
       setEditActivity(null);
     },

@@ -52,6 +52,7 @@ create table if not exists public.activities (
   created_by text,
   archived boolean not null default false,
   mood_emoji text,
+  tools jsonb not null default '[]'::jsonb,
   attachments jsonb not null default '[]'::jsonb,
   verification_requested_from text,
   verification_requested_from_name text,

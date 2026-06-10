@@ -1,6 +1,7 @@
-﻿import React from "react";
+﻿import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Award,
   BarChart3,
   CalendarDays,
   KeyRound,
@@ -9,7 +10,6 @@ import {
   LogOut,
   Menu,
   TrendingUp,
-  Trophy,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,15 @@ import { useUserPoints } from "@/lib/useUserPoints";
 import { db } from "@/services/dataService";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { computeToolXp, getRankedTools } from "@/lib/gamification";
+import MiniToolBadge from "@/components/gamification/MiniToolBadge";
+import Logo from "@/components/Logo";
 
 const userNavItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Atividades", path: "/atividades", icon: ListTodo },
   { label: "Produtividade", path: "/produtividade", icon: TrendingUp },
-  { label: "Recompensas", path: "/recompensas", icon: Trophy },
+  { label: "Conquistas", path: "/conquistas", icon: Award },
   { label: "Eventos", path: "/eventos", icon: CalendarDays },
 ];
 
@@ -51,20 +54,17 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
       ? adminNavItems
       : userNavItems;
 
-  const { data: rewards = [] } = useQuery({
-    queryKey: ["rewards"],
-    queryFn: () => db.entities.Reward.list("points_required", 20),
-    staleTime: 1000 * 60,
+  const { data: allActivities = [] } = useQuery({
+    queryKey: ["activities"],
+    queryFn: () => db.entities.Activity.list("-created_date", 200),
+    staleTime: 1000 * 30,
     enabled: !!user,
   });
 
-  const topRewards = rewards
-    .map((reward) => ({
-      ...reward,
-      pct: reward.points_required ? Math.min(100, Math.round((myPoints / reward.points_required) * 100)) : 0,
-    }))
-    .sort((a, b) => b.pct - a.pct)
-    .slice(0, 3);
+  const topTools = useMemo(() => {
+    const xpMap = computeToolXp(allActivities, user?.email);
+    return getRankedTools(xpMap).slice(0, 3);
+  }, [allActivities, user]);
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((name) => name[0]).slice(0, 2).join("").toUpperCase()
@@ -73,8 +73,8 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const nav = (
     <nav className="flex h-full min-h-0 flex-col p-3">
       <div className="flex items-center gap-3 px-2 py-2 mb-5">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
-          <TrendingUp className="w-5 h-5 text-primary-foreground" />
+        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 p-1.5">
+          <Logo className="w-full h-full text-primary-foreground" fallback={TrendingUp} />
         </div>
         <span className="text-lg font-bold tracking-tight truncate">Atividades</span>
       </div>
@@ -138,47 +138,15 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
           </div>
         </Link>
 
-        {topRewards.length > 0 && (
+        {topTools.length > 0 && (
           <div className="px-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
               Conquistas
             </p>
-            <div className="grid grid-cols-3 gap-2">
-              {topRewards.map((reward) => {
-                const unlocked = reward.pct >= 100;
-                const near = reward.pct >= 60;
-                return (
-                  <div key={reward.id} className="min-w-0">
-                    <div
-                      className={`h-10 rounded-lg flex items-center justify-center text-lg ${
-                        unlocked
-                          ? "bg-amber-100 ring-2 ring-amber-400"
-                          : near
-                            ? "bg-primary/10 ring-1 ring-primary/30"
-                            : "bg-muted ring-1 ring-border"
-                      }`}
-                    >
-                      {reward.icon || "🏆"}
-                    </div>
-                    <p
-                      title={reward.title}
-                      className={`mt-1 text-[9px] text-center leading-tight font-medium truncate ${
-                        unlocked ? "text-amber-600" : near ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
-                      {reward.title}
-                    </p>
-                    <div className="mt-1 h-1 rounded-full bg-border overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          unlocked ? "bg-amber-400" : near ? "bg-primary" : "bg-muted-foreground/40"
-                        }`}
-                        style={{ width: `${reward.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 gap-2">
+              {topTools.map((tool) => (
+                <MiniToolBadge key={tool.id} tool={tool} />
+              ))}
             </div>
           </div>
         )}

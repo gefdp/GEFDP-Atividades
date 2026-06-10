@@ -6,7 +6,6 @@ export const MAX_UPLOAD_MB = MAX_UPLOAD_BYTES / 1024 / 1024;
 const entityTables = {
   Activity: "activities",
   Event: "events",
-  Reward: "rewards",
   User: "profiles",
 };
 
@@ -116,7 +115,6 @@ export const db = {
   entities: {
     Activity: makeEntity("Activity"),
     Event: makeEntity("Event"),
-    Reward: makeEntity("Reward"),
     User: makeEntity("User"),
   },
 };

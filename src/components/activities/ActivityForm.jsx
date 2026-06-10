@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sparkles, X, UserPlus } from "lucide-react";
+import { Sparkles, X, UserPlus, Wrench } from "lucide-react";
+import { TOOL_CATEGORIES, getToolsByCategory, getToolById, getToolBadgeUrl } from "@/lib/toolsCatalog";
 
 const categories = [
   { value: "trabalho", label: "Trabalho" },
@@ -34,6 +35,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
     points: 10,
     assigned_to: currentUser?.email || "",
     assigned_to_name: currentUser?.full_name || "",
+    tools: [],
   };
 
   const [form, setForm] = useState(defaultForm);
@@ -41,7 +43,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
 
   useEffect(() => {
     if (editActivity) {
-      setForm(editActivity);
+      setForm({ ...editActivity, tools: editActivity.tools || [] });
       setCollaborators([]);
     } else {
       setForm({
@@ -71,6 +73,15 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
 
   const removeCollaborator = (email) => {
     setCollaborators(collaborators.filter((c) => c.email !== email));
+  };
+
+  const addTool = (toolId) => {
+    if (form.tools?.includes(toolId)) return;
+    setForm({ ...form, tools: [...(form.tools || []), toolId] });
+  };
+
+  const removeTool = (toolId) => {
+    setForm({ ...form, tools: (form.tools || []).filter((t) => t !== toolId) });
   };
 
   const handleSubmit = (e) => {
@@ -142,6 +153,57 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5" /> Ferramentas
+            </Label>
+            <Select value="" onValueChange={addTool}>
+              <SelectTrigger>
+                <SelectValue placeholder="Vincular ferramenta..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TOOL_CATEGORIES.map((cat) => {
+                  const toolsInCat = getToolsByCategory(cat.id).filter(
+                    (t) => !form.tools?.includes(t.id)
+                  );
+                  if (toolsInCat.length === 0) return null;
+                  return (
+                    <SelectGroup key={cat.id}>
+                      <SelectLabel>{cat.label}</SelectLabel>
+                      {toolsInCat.map((tool) => (
+                        <SelectItem key={tool.id} value={tool.id}>
+                          {tool.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            {form.tools?.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {form.tools.map((toolId) => {
+                  const tool = getToolById(toolId);
+                  return (
+                    <div key={toolId} className="flex items-center gap-1.5 bg-muted rounded-full pl-1 pr-2 py-0.5">
+                      <img
+                        src={getToolBadgeUrl(tool || { category: "outros", id: toolId })}
+                        alt=""
+                        className="w-5 h-5 rounded-full object-contain bg-background"
+                        onError={(e) => { e.target.style.visibility = "hidden"; }}
+                      />
+                      <span className="text-xs font-medium">{tool?.name || toolId}</span>
+                      <button type="button" onClick={() => removeTool(toolId)} className="text-muted-foreground hover:text-foreground ml-0.5">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Admin: atribuir para membro da equipe */}

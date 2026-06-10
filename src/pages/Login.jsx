@@ -32,16 +32,8 @@ export default function Login() {
   return (
     <AuthLayout
       icon={LogIn}
-      title="GEFDP Atividades"
-      subtitle="Acesse o painel da Gerência Executiva de Formação e Desenvolvimento"
-      footer={
-        <>
-          Ainda não tem conta?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Solicitar cadastro
-          </Link>
-        </>
-      }
+      title="Entrar"
+      subtitle="Bem-vindo de volta! Acesse o painel da Gerência Executiva de Formação e Desenvolvimento."
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">

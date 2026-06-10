@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { db } from "@/services/dataService";
 import { useQuery } from "@tanstack/react-query";
-import { ListTodo, CheckCircle2, Trophy, Flame } from "lucide-react";
+import { ListTodo, CheckCircle2, Trophy, Flame, Award, ChevronRight } from "lucide-react";
 import StatCard from "../components/dashboard/StatCard";
 import ActivityChart from "../components/dashboard/ActivityChart";
 import RecentActivityList from "../components/dashboard/RecentActivityList";
+import ToolBadgeCard from "../components/gamification/ToolBadgeCard";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { computeToolXp, getRankedTools } from "@/lib/gamification";
 
 export default function Dashboard() {
   const { user, isAdmin, isLoading: loadingUser } = useCurrentUser();
@@ -17,11 +20,6 @@ export default function Dashboard() {
     queryKey: ["activities"],
     queryFn: () => db.entities.Activity.list("-created_date", 200),
     enabled: !!user,
-  });
-
-  const { data: rewards = [] } = useQuery({
-    queryKey: ["rewards"],
-    queryFn: () => db.entities.Reward.list(),
   });
 
   const { data: users = [] } = useQuery({
@@ -57,9 +55,10 @@ export default function Dashboard() {
   const totalPoints = activities
     .filter((a) => a.status === "concluida")
     .reduce((sum, a) => sum + (a.points || 10), 0);
-  const unlockedRewards = rewards.filter(
-    (r) => r.unlocked || totalPoints >= r.points_required
-  ).length;
+
+  const toolXpMap = useMemo(() => computeToolXp(allActivities, user?.email), [allActivities, user]);
+  const startedToolsCount = Object.keys(toolXpMap).length;
+  const topTools = useMemo(() => getRankedTools(toolXpMap).slice(0, 3), [toolXpMap]);
 
   const streakDays = (() => {
     let streak = 0;
@@ -147,7 +146,7 @@ export default function Dashboard() {
         <StatCard
           title="Pontos Totais"
           value={totalPoints}
-          subtitle={`${unlockedRewards} recompensas`}
+          subtitle={`${startedToolsCount} insígnias em progresso`}
           icon={Trophy}
           color="bg-amber-100 text-amber-600"
         />
@@ -167,6 +166,28 @@ export default function Dashboard() {
         <div className="lg:col-span-2">
           <RecentActivityList activities={activities} />
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold flex items-center gap-2">
+            <Award className="w-4 h-4 text-primary" /> Suas Insígnias
+          </h3>
+          <Link to="/conquistas" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
+            Ver todas <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+        {topTools.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-xl">
+            {topTools.map((tool) => (
+              <ToolBadgeCard key={tool.id} tool={tool} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Vincule ferramentas às suas atividades para começar a evoluir suas insígnias!
+          </p>
+        )}
       </div>
     </div>
   );

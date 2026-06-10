@@ -3,7 +3,6 @@ import { db } from "@/services/dataService";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
-import MonthlyHeatmap from "../components/productivity/MonthlyHeatmap";
 import { ptBR } from "date-fns/locale";
 import { TrendingUp, Target, Zap, Calendar } from "lucide-react";
 import StatCard from "../components/dashboard/StatCard";
@@ -225,7 +224,6 @@ export default function Productivity() {
         </div>
       </div>
 
-      <MonthlyHeatmap activities={activities} />
     </div>
   );
 }

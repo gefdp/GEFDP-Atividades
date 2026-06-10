@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import ActivityAttachments from "./ActivityAttachments";
+import { getToolById, getToolBadgeUrl } from "@/lib/toolsCatalog";
 
 const categoryLabels = {
   trabalho: "Trabalho",
@@ -140,6 +141,20 @@ export default function ActivityCard({
               </span>
             )}
             <span className="text-xs font-bold text-primary">+{activity.points || 10}pts</span>
+            {(activity.tools || []).map((toolId) => {
+              const tool = getToolById(toolId);
+              if (!tool) return null;
+              return (
+                <img
+                  key={toolId}
+                  src={getToolBadgeUrl(tool)}
+                  alt={tool.name}
+                  title={tool.name}
+                  className="w-4 h-4 rounded-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              );
+            })}
             {activity.mood_emoji && <span className="text-base" title="Humor ao concluir">{activity.mood_emoji}</span>}
             {isFullyVerified && <span className="text-xs text-green-600 font-semibold">Verificada</span>}
             <button
