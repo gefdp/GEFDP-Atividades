@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        var p = window.location.search.match(/[?&]p=([^&]*)/);
+        if (p) {
+          var base = window.location.pathname.split('/').slice(0, 2).join('/');
+          window.history.replaceState(null, null, base + decodeURIComponent(p[1]));
+        }
+      })();
+    </script>
+    <meta name="theme-color" content="#3f7f73" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>GEFDP Atividades</title>
+    <script type="module" crossorigin src="/GEFDP-Atividades/assets/index-CmTwgEk5.js"></script>
+    <link rel="stylesheet" crossorigin href="/GEFDP-Atividades/assets/index-C95y1yeq.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
