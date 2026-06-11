@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sparkles, X, UserPlus, Wrench } from "lucide-react";
 import { TOOL_CATEGORIES, getToolsByCategory, getToolById, getToolBadgeUrl } from "@/lib/toolsCatalog";
+import { calculateActivityPoints, DIFFICULTY_OPTIONS, PRIORITY_OPTIONS } from "@/lib/activityScoring";
 
 const categories = [
   { value: "trabalho", label: "Trabalho" },
@@ -18,12 +19,7 @@ const categories = [
   { value: "outro", label: "Outro" },
 ];
 
-const priorities = [
-  { value: "baixa", label: "Baixa", points: 5 },
-  { value: "media", label: "Média", points: 10 },
-  { value: "alta", label: "Alta", points: 20 },
-  { value: "urgente", label: "Urgente", points: 30 },
-];
+const priorities = PRIORITY_OPTIONS;
 
 export default function ActivityForm({ open, onOpenChange, onSubmit, editActivity, isAdmin, users = [], currentUser, isSaving = false }) {
   const defaultForm = {
@@ -31,8 +27,9 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
     description: "",
     category: "trabalho",
     priority: "media",
+    difficulty: "facil",
     due_date: "",
-    points: 10,
+    points: calculateActivityPoints("media", "facil"),
     assigned_to: currentUser?.email || "",
     assigned_to_name: currentUser?.full_name || "",
     tools: [],
@@ -43,7 +40,15 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
 
   useEffect(() => {
     if (editActivity) {
-      setForm({ ...editActivity, tools: editActivity.tools || [] });
+      const nextPriority = editActivity.priority || "media";
+      const nextDifficulty = editActivity.difficulty || "facil";
+      setForm({
+        ...editActivity,
+        priority: nextPriority,
+        difficulty: nextDifficulty,
+        points: calculateActivityPoints(nextPriority, nextDifficulty),
+        tools: editActivity.tools || [],
+      });
       setCollaborators([]);
     } else {
       setForm({
@@ -56,8 +61,11 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
   }, [editActivity, open, currentUser]);
 
   const handlePriorityChange = (value) => {
-    const p = priorities.find((p) => p.value === value);
-    setForm({ ...form, priority: value, points: p?.points || 10 });
+    setForm({ ...form, priority: value, points: calculateActivityPoints(value, form.difficulty) });
+  };
+
+  const handleDifficultyChange = (value) => {
+    setForm({ ...form, difficulty: value, points: calculateActivityPoints(form.priority, value) });
   };
 
   const handleAssignChange = (email) => {
@@ -86,7 +94,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(form, collaborators);
+    onSubmit({ ...form, points: calculateActivityPoints(form.priority, form.difficulty) }, collaborators);
   };
 
   // Todos os usuários sem duplicatas, currentUser primeiro
@@ -104,7 +112,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-2xl rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -130,7 +138,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
               className="h-20"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Categoria</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
@@ -149,6 +157,17 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
                 <SelectContent>
                   {priorities.map((p) => (
                     <SelectItem key={p.value} value={p.value}>{p.label} (+{p.points}pts)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Dificuldade</Label>
+              <Select value={form.difficulty || "facil"} onValueChange={handleDifficultyChange}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DIFFICULTY_OPTIONS.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label} (+{d.points}pts)</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -314,7 +333,7 @@ export default function ActivityForm({ open, onOpenChange, onSubmit, editActivit
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="text-sm text-muted-foreground">
-              Recompensa: <span className="font-bold text-primary">{form.points} pontos</span>
+              Recompensa: <span className="font-bold text-primary">{calculateActivityPoints(form.priority, form.difficulty)} pontos</span>
             </span>
             <Button type="submit" className="rounded-xl px-6" disabled={isSaving}>
               {isSaving ? "Salvando..." : editActivity ? "Salvar" : "Criar Atividade"}

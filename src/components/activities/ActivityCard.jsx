@@ -15,6 +15,7 @@ import {
 import { motion } from "framer-motion";
 import ActivityAttachments from "./ActivityAttachments";
 import { getToolById, getToolBadgeUrl } from "@/lib/toolsCatalog";
+import { getDifficultyOption, getPriorityOption } from "@/lib/activityScoring";
 
 const categoryLabels = {
   trabalho: "Trabalho",
@@ -23,13 +24,6 @@ const categoryLabels = {
   pessoal: "Pessoal",
   projeto: "Projeto",
   outro: "Outro",
-};
-
-const priorityConfig = {
-  baixa: "bg-green-100 text-green-700",
-  media: "bg-amber-100 text-amber-700",
-  alta: "bg-orange-100 text-orange-700",
-  urgente: "bg-red-100 text-red-700",
 };
 
 const STATUS_ORDER = ["pendente", "em_progresso", "concluida"];
@@ -55,6 +49,8 @@ export default function ActivityCard({
   const canAdvance = currentIdx < STATUS_ORDER.length - 1;
   const canGoBack = currentIdx > 0;
   const isFullyVerified = activity.verified_by_owner && activity.verified_by_requester;
+  const priority = getPriorityOption(activity.priority);
+  const difficulty = activity.difficulty ? getDifficultyOption(activity.difficulty) : null;
 
   const isOwnActivity =
     currentUser?.email === activity.assigned_to ||
@@ -132,9 +128,14 @@ export default function ActivityCard({
 
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge variant="secondary" className="text-xs">{categoryLabels[activity.category] || activity.category}</Badge>
-            <Badge variant="secondary" className={`text-xs ${priorityConfig[activity.priority] || ""}`}>
-              {activity.priority}
+            <Badge variant="secondary" className={`text-xs ${priority.className}`}>
+              {priority.label}
             </Badge>
+            {difficulty && (
+              <Badge variant="secondary" className={`text-xs ${difficulty.className}`}>
+                {difficulty.label}
+              </Badge>
+            )}
             {activity.due_date && (
               <span className="text-xs text-muted-foreground">
                 {format(new Date(activity.due_date + "T00:00:00"), "dd MMM", { locale: ptBR })}

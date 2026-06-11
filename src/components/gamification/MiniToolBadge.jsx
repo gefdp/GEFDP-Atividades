@@ -8,7 +8,7 @@ export default function MiniToolBadge({ tool }) {
 
   return (
     <div className="min-w-0">
-      <div className="h-16 flex items-center justify-center">
+      <div className="h-16 flex items-center justify-center [@media(max-height:700px)]:h-11">
         {!imgError ? (
           <img
             src={getToolBadgeUrl(tool)}
@@ -20,11 +20,11 @@ export default function MiniToolBadge({ tool }) {
           <Award className={`w-6 h-6 ${tier.color}`} />
         )}
       </div>
-      <p title={name} className={`mt-1 text-[10px] text-center leading-tight font-semibold truncate ${tier.color}`}>
+      <p title={name} className={`mt-1 text-[10px] text-center leading-tight font-semibold truncate [@media(max-height:700px)]:text-[9px] ${tier.color}`}>
         {name}
       </p>
       <p className="text-[9px] text-center text-muted-foreground leading-tight">Nível {level}</p>
-      <div className="mt-1 h-1.5 rounded-full bg-border overflow-hidden">
+      <div className="mt-1 h-1.5 rounded-full bg-border overflow-hidden [@media(max-height:700px)]:h-1">
         <div
           className={`h-full rounded-full transition-all ${tier.bar}`}
           style={{ width: `${progressPercent}%` }}

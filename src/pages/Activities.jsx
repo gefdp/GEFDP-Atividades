@@ -15,13 +15,14 @@ import MoodCompletionDialog from "../components/activities/MoodCompletionDialog"
 import NextEventCard from "../components/activities/NextEventCard";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { playPointsSound } from "@/lib/useSounds";
+import { calculateActivityPoints } from "@/lib/activityScoring";
 
 export default function Activities() {
   const [showForm, setShowForm] = useState(false);
   const [editActivity, setEditActivity] = useState(null);
   const [statusFilter, setStatusFilter] = useState("active");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const assigneeInitialized = useRef(false);
+  const lastAssigneeUserRef = useRef(null);
   const [verificationFilter, setVerificationFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [completingActivity, setCompletingActivity] = useState(null);
@@ -31,11 +32,18 @@ export default function Activities() {
   const { user, isAdmin, isDeveloper } = useCurrentUser();
 
   useEffect(() => {
-    if (!assigneeInitialized.current && user?.email && !isAdmin) {
-      assigneeInitialized.current = true;
+    if (!user?.email) return;
+
+    if (lastAssigneeUserRef.current !== user.email) {
+      lastAssigneeUserRef.current = user.email;
+      setAssigneeFilter(user.email);
+      return;
+    }
+
+    if (!isAdmin && assigneeFilter !== user.email) {
       setAssigneeFilter(user.email);
     }
-  }, [user?.email, isAdmin]);
+  }, [assigneeFilter, user?.email, isAdmin]);
 
   const { data: allActivities = [], isLoading } = useQuery({
     queryKey: ["activities"],
@@ -73,6 +81,7 @@ export default function Activities() {
   }, [users, allActivities, user]);
 
   const visibleActivities = allActivities;
+  const effectiveAssigneeFilter = isAdmin ? assigneeFilter : user?.email || assigneeFilter;
 
   const handleMutationError = (error, title = "Erro ao salvar atividade") => {
     toast({
@@ -112,11 +121,13 @@ export default function Activities() {
   });
 
   const buildActivityPayload = (formData) => {
+    const difficulty = formData.difficulty || "facil";
     const payload = {
       ...formData,
+      difficulty,
       due_date: formData.due_date || null,
       status: formData.status || "pendente",
-      points: Number(formData.points || 10),
+      points: calculateActivityPoints(formData.priority, difficulty),
     };
 
     if (!payload.assigned_to) {
@@ -206,7 +217,7 @@ export default function Activities() {
       }
 
       const matchSearch = !search || a.title?.toLowerCase().includes(search.toLowerCase());
-      const matchAssignee = assigneeFilter === "all" || a.assigned_to === assigneeFilter;
+      const matchAssignee = effectiveAssigneeFilter === "all" || a.assigned_to === effectiveAssigneeFilter;
 
       let matchVerification = true;
       if (verificationFilter === "verified") {
@@ -228,7 +239,7 @@ export default function Activities() {
 
   // When showing all assignees, group activities with same title+creator+date into one card
   let displayActivities = filtered;
-  if (assigneeFilter === "all") {
+  if (effectiveAssigneeFilter === "all") {
     const map = new Map();
     filtered.forEach((a) => {
       const key = `${(a.title || "").toLowerCase().trim()}||${a.created_by || ""}||${a.due_date || ""}`;
@@ -292,13 +303,13 @@ export default function Activities() {
         </div>
 
         {effectiveUsers.length > 0 && (
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <Select value={effectiveAssigneeFilter} onValueChange={setAssigneeFilter} disabled={!isAdmin}>
             <SelectTrigger className="w-48 rounded-xl">
               <User className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
               <SelectValue placeholder="Responsável" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os responsáveis</SelectItem>
+              {isAdmin && <SelectItem value="all">Todos os responsáveis</SelectItem>}
               {effectiveUsers.map((u) => {
                 const initials = u.full_name
                   ? u.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()

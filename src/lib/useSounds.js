@@ -46,3 +46,38 @@ export function playNotificationSound() {
   setTimeout(() => playTone(880, 0.08, "sine", 0.2), 0);
   setTimeout(() => playTone(1100, 0.15, "sine", 0.2), 100);
 }
+
+// Achievement sound — celebratory fanfare for new badges/level ups
+export function playAchievementSound() {
+  const notes = [523, 659, 784, 1047, 1319]; // C5 E5 G5 C6 E6
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.35, "triangle", 0.28), i * 90);
+  });
+  setTimeout(() => {
+    playTone(1047, 0.7, "triangle", 0.22);
+    playTone(1568, 0.7, "triangle", 0.16);
+  }, notes.length * 90);
+}
+
+// Winner sound — longer fanfare for becoming the ranking leader
+export function playWinnerSound() {
+  const melody = [
+    [523, 0.12, 0],
+    [659, 0.12, 120],
+    [784, 0.14, 240],
+    [1047, 0.2, 380],
+    [784, 0.12, 620],
+    [1047, 0.16, 760],
+    [1319, 0.45, 940],
+  ];
+
+  melody.forEach(([freq, duration, delay]) => {
+    setTimeout(() => playTone(freq, duration, "square", 0.2), delay);
+  });
+
+  setTimeout(() => {
+    playTone(523, 0.9, "triangle", 0.16);
+    playTone(659, 0.9, "triangle", 0.13);
+    playTone(784, 0.9, "triangle", 0.11);
+  }, 1060);
+}
