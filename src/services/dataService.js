@@ -2,6 +2,8 @@
 
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 export const MAX_UPLOAD_MB = MAX_UPLOAD_BYTES / 1024 / 1024;
+export const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_AUDIO_UPLOAD_MB = MAX_AUDIO_UPLOAD_BYTES / 1024 / 1024;
 
 const entityTables = {
   Activity: "activities",
@@ -119,9 +121,10 @@ export const db = {
   },
 };
 
-export async function uploadFile(file, folder = "uploads") {
-  if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`O arquivo deve ter no máximo ${MAX_UPLOAD_MB} MB.`);
+export async function uploadFile(file, folder = "uploads", maxBytes = MAX_UPLOAD_BYTES) {
+  if (file.size > maxBytes) {
+    const maxMb = maxBytes / 1024 / 1024;
+    throw new Error(`O arquivo deve ter no máximo ${maxMb} MB.`);
   }
 
   const user = await getSessionUser();

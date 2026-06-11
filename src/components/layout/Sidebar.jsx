@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Award,
@@ -48,6 +48,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const { user, isAdmin, isAccessManager } = useCurrentUser();
   const { logout } = useAuth();
   const { myPoints, isLeader } = useUserPoints(user?.email);
+  const [frameError, setFrameError] = useState(false);
   const navItems = isAccessManager
     ? [...adminNavItems, { label: "Acessos", path: "/acessos", icon: KeyRound }]
     : isAdmin
@@ -71,8 +72,8 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
     : "?";
 
   const nav = (
-    <nav className="flex h-full min-h-0 flex-col p-3">
-      <div className="flex items-center gap-3 px-2 py-2 mb-5">
+    <nav className="flex h-full min-h-0 flex-col p-3 [@media(max-height:700px)]:p-2">
+      <div className="flex items-center gap-3 px-2 py-2 mb-5 [@media(max-height:700px)]:mb-2">
         <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 p-1.5">
           <Logo className="w-full h-full text-primary-foreground" fallback={TrendingUp} />
         </div>
@@ -87,7 +88,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 [@media(max-height:700px)]:py-2 ${
                 isActive
                   ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -100,32 +101,44 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
         })}
       </div>
 
-      <div className="mt-3 border-t border-border pt-3 space-y-3 shrink-0">
+      <div className="mt-3 border-t border-border pt-3 space-y-3 shrink-0 [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:space-y-2 [@media(max-height:700px)]:pt-2">
         <Link to="/perfil" onClick={() => setMobileOpen(false)} className="block group">
-          <div className="flex flex-col items-center gap-2 rounded-lg px-2 py-2 hover:bg-secondary/60 transition-colors">
+          <div className="flex flex-col items-center gap-2 rounded-lg px-2 py-2 hover:bg-secondary/60 transition-colors [@media(max-height:700px)]:gap-1.5 [@media(max-height:700px)]:py-1.5">
             <div className="relative">
-              {isLeader && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl drop-shadow z-10" aria-label="Líder">
+              {isLeader && frameError && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl drop-shadow z-10 [@media(max-height:620px)]:hidden" aria-label="Líder">
                   👑
                 </span>
               )}
-              <Avatar className="w-40 h-40 ring-2 ring-border group-hover:ring-primary transition-all duration-200 shadow-lg">
+              <Avatar
+                className={`w-40 h-40 transition-all duration-200 shadow-lg [@media(max-height:760px)]:h-24 [@media(max-height:760px)]:w-24 [@media(max-height:620px)]:hidden ${
+                  isLeader && !frameError ? "" : "ring-2 ring-border group-hover:ring-primary"
+                }`}
+              >
                 <AvatarImage src={user?.avatar_url} className="object-cover" />
                 <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
+              {isLeader && !frameError && (
+                <img
+                  src={`${import.meta.env.BASE_URL}frames/lider.png`}
+                  alt="Líder"
+                  onError={() => setFrameError(true)}
+                  className="pointer-events-none absolute left-1/2 top-1/2 w-[250px] h-auto max-w-none -translate-x-1/2 -translate-y-[58.5%] z-10 [@media(max-height:760px)]:w-[150px] [@media(max-height:620px)]:hidden"
+                />
+              )}
             </div>
 
             <div className="text-center min-w-0">
-              <p className="text-sm font-bold truncate max-w-[150px]">{user?.full_name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+              <p className="text-sm font-bold truncate max-w-[150px] [@media(max-height:700px)]:text-xs">{user?.full_name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[150px] [@media(max-height:700px)]:text-[10px]">
                 {user?.job_title || roleLabels[user?.role] || "Usuário"}
               </p>
             </div>
 
             <div className="flex items-center justify-center gap-1.5">
-              <span className={`text-2xl font-extrabold leading-none ${isLeader ? "text-amber-500" : "text-primary"}`}>
+              <span className={`text-2xl font-extrabold leading-none [@media(max-height:700px)]:text-xl ${isLeader ? "text-amber-500" : "text-primary"}`}>
                 {myPoints}
               </span>
               <span className="text-xs text-muted-foreground font-medium">pts</span>
@@ -143,7 +156,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
               Conquistas
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {topTools.map((tool) => (
                 <MiniToolBadge key={tool.id} tool={tool} />
               ))}

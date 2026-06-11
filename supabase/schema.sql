@@ -20,6 +20,7 @@ create table if not exists public.profiles (
   email text not null unique,
   full_name text,
   avatar_url text,
+  leader_music_url text,
   job_title text,
   role public.user_role not null default 'user',
   created_at timestamptz not null default now(),
@@ -43,6 +44,7 @@ create table if not exists public.activities (
   description text,
   category text not null default 'trabalho',
   priority text not null default 'media',
+  difficulty text not null default 'facil',
   status text not null default 'pendente',
   due_date date,
   completed_date timestamptz,
@@ -328,7 +330,7 @@ values
 on conflict do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('gef-dp-assets', 'gef-dp-assets', true, 2097152)
+values ('gef-dp-assets', 'gef-dp-assets', true, 10485760)
 on conflict (id) do update
 set
   public = excluded.public,

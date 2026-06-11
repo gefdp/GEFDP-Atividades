@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, Clock, Play, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getPriorityOption } from "@/lib/activityScoring";
 
 const statusConfig = {
   pendente: { icon: Clock, label: "Pendente", class: "bg-muted text-muted-foreground" },
@@ -18,13 +19,6 @@ const categoryLabels = {
   pessoal: "Pessoal",
   projeto: "Projeto",
   outro: "Outro",
-};
-
-const priorityConfig = {
-  baixa: "bg-green-100 text-green-700",
-  media: "bg-amber-100 text-amber-700",
-  alta: "bg-orange-100 text-orange-700",
-  urgente: "bg-red-100 text-red-700",
 };
 
 export default function RecentActivityList({ activities }) {
@@ -50,6 +44,7 @@ export default function RecentActivityList({ activities }) {
         {recent.map((activity) => {
           const status = statusConfig[activity.status] || statusConfig.pendente;
           const StatusIcon = status.icon;
+          const priority = getPriorityOption(activity.priority);
           return (
             <div
               key={activity.id}
@@ -65,8 +60,8 @@ export default function RecentActivityList({ activities }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className={`text-xs ${priorityConfig[activity.priority] || ""}`}>
-                  {activity.priority}
+                <Badge variant="secondary" className={`text-xs ${priority.className}`}>
+                  {priority.label}
                 </Badge>
                 <span className="text-xs font-semibold text-primary">+{activity.points || 10}pts</span>
               </div>

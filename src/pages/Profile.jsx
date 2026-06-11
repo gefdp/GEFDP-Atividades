@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef } from "react";
-import { db, uploadFile } from "@/services/dataService";
+import { db, MAX_AUDIO_UPLOAD_BYTES, MAX_AUDIO_UPLOAD_MB, uploadFile } from "@/services/dataService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useAuth } from "@/lib/AuthContext";
@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, Save, Loader2 } from "lucide-react";
+import { Camera, Save, Loader2, Music, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
@@ -23,9 +23,11 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileRef = useRef();
+  const musicFileRef = useRef();
 
   const [jobTitle, setJobTitle] = useState(user?.job_title || "");
   const [uploading, setUploading] = useState(false);
+  const [uploadingMusic, setUploadingMusic] = useState(false);
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
@@ -94,6 +96,57 @@ export default function Profile() {
     }
   };
 
+  const handleLeaderMusicChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = "";
+
+    if (!file.type.startsWith("audio/")) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Escolha um arquivo de áudio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingMusic(true);
+
+    try {
+      const { file_url } = await uploadFile(file, "leader-music", MAX_AUDIO_UPLOAD_BYTES);
+      await updateProfile({ leader_music_url: file_url });
+
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["entityUser"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: "Música de líder atualizada!" });
+    } catch (error) {
+      toast({
+        title: "Erro ao enviar música",
+        description: error?.message || `Use arquivos de áudio de até ${MAX_AUDIO_UPLOAD_MB} MB.`,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingMusic(false);
+    }
+  };
+
+  const removeLeaderMusic = async () => {
+    try {
+      await updateProfile({ leader_music_url: null });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["entityUser"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: "Música de líder removida." });
+    } catch (error) {
+      toast({
+        title: "Erro ao remover música",
+        description: error?.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-xl">
       <div>
@@ -155,6 +208,59 @@ export default function Profile() {
               value={jobTitle}
               onChange={(event) => setJobTitle(event.target.value)}
             />
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-amber-500" />
+                  Música de líder
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Toca quando você assumir o 1º lugar no ranking.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => musicFileRef.current?.click()}
+                disabled={uploadingMusic}
+                className="gap-2 shrink-0"
+              >
+                {uploadingMusic ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Enviar
+              </Button>
+            </div>
+
+            <input
+              ref={musicFileRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleLeaderMusicChange}
+            />
+
+            {user?.leader_music_url ? (
+              <div className="space-y-2">
+                <audio controls src={user.leader_music_url} className="w-full" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeLeaderMusic}
+                  className="gap-2 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remover música
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma música escolhida. O sistema usará o som de vencedor padrão.
+              </p>
+            )}
           </div>
         </div>
 
