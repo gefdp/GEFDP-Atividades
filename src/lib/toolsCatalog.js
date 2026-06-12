@@ -12,7 +12,6 @@ export const TOOL_CATEGORIES = [
   { id: "edicao", label: "Edição" },
   { id: "reuniao", label: "Reunião" },
   { id: "ia", label: "I.A" },
-  { id: "outros", label: "Outros" },
 ];
 
 export const TOOLS = [
@@ -43,7 +42,6 @@ export const TOOLS = [
   { id: "google-drive", name: "Google Drive", category: "google" },
   { id: "google-forms", name: "Google Forms", category: "google" },
   { id: "google-agenda", name: "Google Agenda", category: "google" },
-  { id: "google-meet", name: "Google Meet", category: "google" },
 
   // Gestão
   { id: "trello", name: "Trello", category: "gestao" },
@@ -51,17 +49,15 @@ export const TOOLS = [
   { id: "notion", name: "Notion", category: "gestao" },
   { id: "monday", name: "Monday", category: "gestao" },
   { id: "jira", name: "Jira", category: "gestao" },
-  { id: "zoom", name: "Zoom", category: "gestao" },
-  { id: "teams", name: "Teams", category: "gestao" },
   { id: "pbdoc", name: "PB doc", category: "gestao" },
 
   // I.A
-  { id: "chatgpt", name: "ChatGpt", category: "i.a" },
-  { id: "claude", name: "Claude", category: "i.a" },
-  { id: "gamma", name: "Gamma", category: "i.a" },
-  { id: "gemini", name: "Gemini", category: "i.a" },
-  { id: "moodle", name: "Moodle", category: "i.a" },
-  { id: "notebooklm", name: "NotebookLM", category: "i.a" },
+  { id: "chatgpt", name: "ChatGPT", category: "ia" },
+  { id: "claude", name: "Claude", category: "ia" },
+  { id: "gamma", name: "Gamma", category: "ia" },
+  { id: "gemini", name: "Gemini", category: "ia" },
+  { id: "moodle", name: "Moodle", category: "ia" },
+  { id: "notebooklm", name: "NotebookLM", category: "ia" },
 
   // Edição
   { id: "photoshop", name: "Photoshop", category: "edicao" },
@@ -77,10 +73,6 @@ export const TOOLS = [
   { id: "teams", name: "Teams", category: "reuniao" },
   { id: "zoom", name: "Zoom", category: "reuniao" },
 
-  // Outros
-  { id: "word", name: "Word", category: "outros" },
-  { id: "powerpoint", name: "PowerPoint", category: "outros" },
-  { id: "word", name: "Word", category: "outros" },
 ];
 
 export function getToolById(id) {

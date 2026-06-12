@@ -34,12 +34,12 @@ pode ir adicionando aos poucos.
 - google-agenda.png — Google Agenda
 
 ## gestao/
-- excel.png — Excel
 - trello.png — Trello
 - asana.png — Asana
 - notion.png — Notion
 - monday.png — Monday
 - jira.png — Jira
+- pbdoc.png — PB doc
 
 ## edicao/
 - photoshop.png — Photoshop
@@ -48,9 +48,17 @@ pode ir adicionando aos poucos.
 - premiere.png — Premiere
 - capcut.png — CapCut
 - figma.png — Figma
+- aftereffects.png — After Effects
 
-## outros/
-- word.png — Word
-- powerpoint.png — PowerPoint
+## reuniao/
 - zoom.png — Zoom
 - teams.png — Teams
+- google-meet.png — Google Meet
+
+## ia/
+- chatgpt.png — ChatGPT
+- claude.png — Claude
+- gamma.png — Gamma
+- gemini.png — Gemini
+- moodle.png — Moodle
+- notebooklm.png — NotebookLM

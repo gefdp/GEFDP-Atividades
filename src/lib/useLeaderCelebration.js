@@ -81,24 +81,51 @@ function makeLocalLeaderAlert(user, points) {
   };
 }
 
+function makeCurrentLeaderAlert(leaderUser, points, podium = []) {
+  return {
+    id: `current-leader-${leaderUser.email}-${points}`,
+    created_at: new Date().toISOString(),
+    message: leaderUser.leader_message || "",
+    points,
+    user: leaderUser,
+    podium,
+    mode: "entry",
+  };
+}
+
 export function useLeaderCelebration() {
   const { user } = useCurrentUser();
-  const { myPoints, isLeader, leaderEmail } = useUserPoints(user?.email);
+  const { myPoints, isLeader, leaderEmail, leaderPoints, leaderUser, rankingTop3 } = useUserPoints(user?.email);
   const [current, setCurrent] = useState(null);
   const [sharedAlertsAvailable, setSharedAlertsAvailable] = useState(true);
   const lastCelebratedRef = useRef(null);
+  const shownOnEntryRef = useRef(null);
 
   const showAlert = useCallback(
     (alert, options = {}) => {
       if (!user?.email || !alert?.id) return;
       if (!options.force && !isFreshAlert(alert)) return;
-      if (getViewedAlertId(user.email) === alert.id) return;
+      if (!options.ignoreViewed && getViewedAlertId(user.email) === alert.id) return;
 
+      const alertWithPodium = alert.podium?.length ? alert : { ...alert, podium: rankingTop3 };
       saveViewedAlertId(user.email, alert.id);
-      setCurrent(alert);
+      setCurrent(alertWithPodium);
     },
-    [user?.email]
+    [rankingTop3, user?.email]
   );
+
+  useEffect(() => {
+    if (!user?.email || !leaderEmail || !leaderUser || leaderPoints <= 0) return;
+
+    const entryToken = `${user.email}:${leaderEmail}`;
+    if (shownOnEntryRef.current === entryToken) return;
+
+    shownOnEntryRef.current = entryToken;
+    showAlert(makeCurrentLeaderAlert(leaderUser, leaderPoints, rankingTop3), {
+      force: true,
+      ignoreViewed: true,
+    });
+  }, [showAlert, user?.email, leaderEmail, leaderUser, leaderPoints, rankingTop3]);
 
   useEffect(() => {
     if (!user?.email) return undefined;
