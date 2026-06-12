@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { db, MAX_AUDIO_UPLOAD_BYTES, MAX_AUDIO_UPLOAD_MB, uploadFile } from "@/services/dataService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -17,6 +17,8 @@ const roleLabels = {
   user: "Usuário",
 };
 
+const LEADER_MESSAGE_MAX_LENGTH = 90;
+
 export default function Profile() {
   const { user, isAdmin } = useCurrentUser();
   const { updateProfile } = useAuth();
@@ -26,8 +28,14 @@ export default function Profile() {
   const musicFileRef = useRef();
 
   const [jobTitle, setJobTitle] = useState(user?.job_title || "");
+  const [leaderMessage, setLeaderMessage] = useState(user?.leader_message || "");
   const [uploading, setUploading] = useState(false);
   const [uploadingMusic, setUploadingMusic] = useState(false);
+
+  useEffect(() => {
+    setJobTitle(user?.job_title || "");
+    setLeaderMessage(user?.leader_message || "");
+  }, [user?.job_title, user?.leader_message]);
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
@@ -218,7 +226,7 @@ export default function Profile() {
                   Música de líder
                 </Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Toca quando você assumir o 1º lugar no ranking.
+                  Toca para todos quando você assumir o 1º lugar no ranking.
                 </p>
               </div>
               <Button
@@ -261,11 +269,30 @@ export default function Profile() {
                 Nenhuma música escolhida. O sistema usará o som de vencedor padrão.
               </p>
             )}
+
+            <div className="space-y-2 border-t border-border pt-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="leader-message">Frase do alerta</Label>
+                <span className="text-xs text-muted-foreground">
+                  {leaderMessage.length}/{LEADER_MESSAGE_MAX_LENGTH}
+                </span>
+              </div>
+              <Input
+                id="leader-message"
+                maxLength={LEADER_MESSAGE_MAX_LENGTH}
+                placeholder="Ex: O topo tem dono hoje!"
+                value={leaderMessage}
+                onChange={(event) => setLeaderMessage(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Essa frase aparece no popup público junto com sua música.
+              </p>
+            </div>
           </div>
         </div>
 
         <Button
-          onClick={() => saveMutation.mutate({ job_title: jobTitle })}
+          onClick={() => saveMutation.mutate({ job_title: jobTitle, leader_message: leaderMessage.trim() })}
           disabled={saveMutation.isPending}
           className="rounded-xl gap-2 w-full"
         >

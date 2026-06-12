@@ -14,6 +14,7 @@ function mapUser(authUser, profile) {
       authUser.email?.split("@")[0],
     avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url || null,
     leader_music_url: profile?.leader_music_url || null,
+    leader_message: profile?.leader_message || "",
     job_title: profile?.job_title || null,
     role: profile?.role || "user",
   };

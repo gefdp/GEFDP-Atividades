@@ -21,6 +21,7 @@ create table if not exists public.profiles (
   full_name text,
   avatar_url text,
   leader_music_url text,
+  leader_message text,
   job_title text,
   role public.user_role not null default 'user',
   created_at timestamptz not null default now(),
@@ -29,6 +30,16 @@ create table if not exists public.profiles (
 
 alter table public.profiles
 drop column if exists access_password;
+
+alter table public.profiles
+add column if not exists leader_message text;
+
+alter table public.profiles
+drop constraint if exists profiles_leader_message_length;
+
+alter table public.profiles
+add constraint profiles_leader_message_length
+check (char_length(coalesce(leader_message, '')) <= 90);
 
 create table if not exists public.access_credentials (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -93,6 +104,40 @@ create table if not exists public.rewards (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.leader_alerts (
+  id uuid primary key default gen_random_uuid(),
+  leader_user_id uuid references public.profiles(id) on delete set null,
+  leader_email text not null,
+  leader_name text,
+  leader_avatar_url text,
+  leader_music_url text,
+  message text check (char_length(coalesce(message, '')) <= 90),
+  points integer not null default 0,
+  previous_leader_email text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists leader_alerts_created_at_idx
+on public.leader_alerts (created_at desc);
+
+create table if not exists public.prize_alerts (
+  id uuid primary key default gen_random_uuid(),
+  sender_user_id uuid not null references public.profiles(id) on delete cascade,
+  sender_email text not null,
+  sender_name text,
+  sender_avatar_url text,
+  sender_music_url text,
+  message text check (char_length(coalesce(message, '')) <= 90),
+  uses_remaining integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists prize_alerts_created_at_idx
+on public.prize_alerts (created_at desc);
+
+create index if not exists prize_alerts_sender_user_id_idx
+on public.prize_alerts (sender_user_id);
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -151,6 +196,8 @@ alter table public.access_credentials enable row level security;
 alter table public.activities enable row level security;
 alter table public.events enable row level security;
 alter table public.rewards enable row level security;
+alter table public.leader_alerts enable row level security;
+alter table public.prize_alerts enable row level security;
 
 create or replace function public.current_user_role()
 returns public.user_role
@@ -214,6 +261,149 @@ set search_path = public
 as $$
   select email from auth.users where id = auth.uid()
 $$;
+
+create or replace function public.create_leader_alert_if_changed()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_leader record;
+  last_leader_email text;
+begin
+  select
+    p.id,
+    scores.email,
+    coalesce(p.full_name, split_part(scores.email, '@', 1)) as full_name,
+    p.avatar_url,
+    p.leader_music_url,
+    nullif(trim(p.leader_message), '') as leader_message,
+    scores.total_points
+  into current_leader
+  from (
+    select
+      coalesce(a.assigned_to, a.created_by) as email,
+      sum(coalesce(a.points, 10))::integer as total_points
+    from public.activities a
+    where a.status = 'concluida'
+      and coalesce(a.assigned_to, a.created_by) is not null
+    group by coalesce(a.assigned_to, a.created_by)
+  ) scores
+  left join public.profiles p on p.email = scores.email
+  order by scores.total_points desc, scores.email asc
+  limit 1;
+
+  if current_leader.email is null or current_leader.total_points <= 0 then
+    return new;
+  end if;
+
+  select la.leader_email
+  into last_leader_email
+  from public.leader_alerts la
+  order by la.created_at desc
+  limit 1;
+
+  if last_leader_email is distinct from current_leader.email then
+    insert into public.leader_alerts (
+      leader_user_id,
+      leader_email,
+      leader_name,
+      leader_avatar_url,
+      leader_music_url,
+      message,
+      points,
+      previous_leader_email
+    )
+    values (
+      current_leader.id,
+      current_leader.email,
+      current_leader.full_name,
+      current_leader.avatar_url,
+      current_leader.leader_music_url,
+      current_leader.leader_message,
+      current_leader.total_points,
+      last_leader_email
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists create_leader_alert_on_completed_activity_insert on public.activities;
+create trigger create_leader_alert_on_completed_activity_insert
+after insert on public.activities
+for each row
+when (new.status = 'concluida')
+execute function public.create_leader_alert_if_changed();
+
+drop trigger if exists create_leader_alert_on_activity_update on public.activities;
+create trigger create_leader_alert_on_activity_update
+after update of status, points, assigned_to, created_by on public.activities
+for each row
+when (new.status = 'concluida' or old.status = 'concluida')
+execute function public.create_leader_alert_if_changed();
+
+create or replace function public.create_prize_alert()
+returns public.prize_alerts
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  profile_row public.profiles%rowtype;
+  alert_row public.prize_alerts%rowtype;
+  used_count integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Usuario nao autenticado.';
+  end if;
+
+  select *
+  into profile_row
+  from public.profiles
+  where id = auth.uid();
+
+  if profile_row.id is null then
+    raise exception 'Perfil nao encontrado.';
+  end if;
+
+  select count(*)::integer
+  into used_count
+  from public.prize_alerts
+  where sender_user_id = auth.uid();
+
+  if used_count >= 3 then
+    raise exception 'Voce ja usou seus 3 premios.';
+  end if;
+
+  insert into public.prize_alerts (
+    sender_user_id,
+    sender_email,
+    sender_name,
+    sender_avatar_url,
+    sender_music_url,
+    message,
+    uses_remaining
+  )
+  values (
+    profile_row.id,
+    profile_row.email,
+    coalesce(profile_row.full_name, split_part(profile_row.email, '@', 1)),
+    profile_row.avatar_url,
+    profile_row.leader_music_url,
+    nullif(trim(profile_row.leader_message), ''),
+    greatest(0, 2 - used_count)
+  )
+  returning * into alert_row;
+
+  return alert_row;
+end;
+$$;
+
+revoke all on function public.create_prize_alert() from public;
+grant execute on function public.create_prize_alert() to authenticated;
 
 drop policy if exists "profiles_select_authenticated" on public.profiles;
 create policy "profiles_select_authenticated"
@@ -321,6 +511,46 @@ on public.rewards for all
 to authenticated
 using (public.current_user_role() in ('developer', 'admin'))
 with check (public.current_user_role() in ('developer', 'admin'));
+
+drop policy if exists "leader_alerts_select_authenticated" on public.leader_alerts;
+create policy "leader_alerts_select_authenticated"
+on public.leader_alerts for select
+to authenticated
+using (true);
+
+drop policy if exists "leader_alerts_delete_staff" on public.leader_alerts;
+create policy "leader_alerts_delete_staff"
+on public.leader_alerts for delete
+to authenticated
+using (public.is_staff());
+
+drop policy if exists "prize_alerts_select_authenticated" on public.prize_alerts;
+create policy "prize_alerts_select_authenticated"
+on public.prize_alerts for select
+to authenticated
+using (true);
+
+drop policy if exists "prize_alerts_delete_staff" on public.prize_alerts;
+create policy "prize_alerts_delete_staff"
+on public.prize_alerts for delete
+to authenticated
+using (public.is_staff());
+
+do $$
+begin
+  alter publication supabase_realtime add table public.leader_alerts;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.prize_alerts;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;
 
 insert into public.rewards (title, description, icon, points_required)
 values

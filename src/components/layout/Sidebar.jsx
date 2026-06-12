@@ -4,9 +4,11 @@ import {
   Award,
   BarChart3,
   CalendarDays,
+  Gift,
   KeyRound,
   LayoutDashboard,
   ListTodo,
+  Loader2,
   LogOut,
   Menu,
   TrendingUp,
@@ -17,9 +19,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useUserPoints } from "@/lib/useUserPoints";
+import { usePrizeAlertTrigger } from "@/lib/usePrizeAlerts";
 import { db } from "@/services/dataService";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { computeToolXp, getRankedTools } from "@/lib/gamification";
 import MiniToolBadge from "@/components/gamification/MiniToolBadge";
 import Logo from "@/components/Logo";
@@ -47,7 +51,15 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
   const { user, isAdmin, isAccessManager } = useCurrentUser();
   const { logout } = useAuth();
+  const { toast } = useToast();
   const { myPoints, isLeader } = useUserPoints(user?.email);
+  const {
+    remaining: prizeRemaining,
+    isAvailable: isPrizeAvailable,
+    isLoading: isPrizeLoading,
+    isSending: isPrizeSending,
+    triggerPrizeAlert,
+  } = usePrizeAlertTrigger();
   const [frameError, setFrameError] = useState(false);
   const navItems = isAccessManager
     ? [...adminNavItems, { label: "Acessos", path: "/acessos", icon: KeyRound }]
@@ -70,6 +82,41 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const initials = user?.full_name
     ? user.full_name.split(" ").map((name) => name[0]).slice(0, 2).join("").toUpperCase()
     : "?";
+
+  const handlePrizeClick = async () => {
+    if (!isPrizeAvailable) {
+      toast({
+        title: "Prêmio ainda não configurado",
+        description: "Rode o SQL supabase/add-prize-alerts.sql no Supabase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (prizeRemaining <= 0) {
+      toast({
+        title: "Prêmios esgotados",
+        description: "Você já usou os 3 popups disponíveis.",
+      });
+      return;
+    }
+
+    try {
+      const alert = await triggerPrizeAlert();
+      const remainingAfter = alert?.uses_remaining ?? Math.max(0, prizeRemaining - 1);
+      const usesLabel = remainingAfter === 1 ? "uso" : "usos";
+      toast({
+        title: "Prêmio ativado!",
+        description: `Popup enviado para todos. Restam ${remainingAfter} ${usesLabel}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Não foi possível ativar o prêmio",
+        description: error?.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const nav = (
     <nav className="flex h-full min-h-0 flex-col p-3 [@media(max-height:700px)]:p-2">
@@ -102,40 +149,54 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
       </div>
 
       <div className="mt-3 border-t border-border pt-3 space-y-3 shrink-0 [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:space-y-2 [@media(max-height:700px)]:pt-2">
-        <Link to="/perfil" onClick={() => setMobileOpen(false)} className="block group">
+        <div className="block group">
           <div className="flex flex-col items-center gap-2 rounded-lg px-2 py-2 hover:bg-secondary/60 transition-colors [@media(max-height:700px)]:gap-1.5 [@media(max-height:700px)]:py-1.5">
             <div className="relative">
-              {isLeader && frameError && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl drop-shadow z-10 [@media(max-height:620px)]:hidden" aria-label="Líder">
-                  👑
-                </span>
-              )}
-              <Avatar
-                className={`w-40 h-40 transition-all duration-200 shadow-lg [@media(max-height:760px)]:h-24 [@media(max-height:760px)]:w-24 [@media(max-height:620px)]:hidden ${
-                  isLeader && !frameError ? "" : "ring-2 ring-border group-hover:ring-primary"
-                }`}
+              <Link to="/perfil" onClick={() => setMobileOpen(false)} aria-label="Abrir perfil">
+                {isLeader && frameError && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xl drop-shadow z-10 [@media(max-height:620px)]:hidden" aria-label="Líder">
+                    👑
+                  </span>
+                )}
+                <Avatar
+                  className={`w-40 h-40 transition-all duration-200 shadow-lg [@media(max-height:760px)]:h-24 [@media(max-height:760px)]:w-24 [@media(max-height:620px)]:hidden ${
+                    isLeader && !frameError ? "" : "ring-2 ring-border group-hover:ring-primary"
+                  }`}
+                >
+                  <AvatarImage src={user?.avatar_url} className="object-cover" />
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                {isLeader && !frameError && (
+                  <img
+                    src={`${import.meta.env.BASE_URL}frames/lider.png`}
+                    alt="Líder"
+                    onError={() => setFrameError(true)}
+                    className="pointer-events-none absolute left-1/2 top-1/2 w-[250px] h-auto max-w-none -translate-x-1/2 -translate-y-[58.5%] z-10 [@media(max-height:760px)]:w-[150px] [@media(max-height:620px)]:hidden"
+                  />
+                )}
+              </Link>
+
+              <button
+                type="button"
+                onClick={handlePrizeClick}
+                disabled={isPrizeSending || isPrizeLoading || (isPrizeAvailable && prizeRemaining <= 0)}
+                title={isPrizeAvailable ? `Ativar prêmio (${prizeRemaining}/3 restantes)` : "Rode o SQL de prêmios no Supabase"}
+                className="absolute -right-1 top-1 z-20 flex h-9 min-w-9 items-center justify-center gap-1 rounded-full border border-rose-200 bg-card px-2 text-rose-600 shadow-lg transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10 [@media(max-height:620px)]:static"
+                aria-label={`Ativar prêmio. Restam ${prizeRemaining} usos`}
               >
-                <AvatarImage src={user?.avatar_url} className="object-cover" />
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              {isLeader && !frameError && (
-                <img
-                  src={`${import.meta.env.BASE_URL}frames/lider.png`}
-                  alt="Líder"
-                  onError={() => setFrameError(true)}
-                  className="pointer-events-none absolute left-1/2 top-1/2 w-[250px] h-auto max-w-none -translate-x-1/2 -translate-y-[58.5%] z-10 [@media(max-height:760px)]:w-[150px] [@media(max-height:620px)]:hidden"
-                />
-              )}
+                {isPrizeSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+                <span className="text-xs font-extrabold">{prizeRemaining}</span>
+              </button>
             </div>
 
-            <div className="text-center min-w-0">
+            <Link to="/perfil" onClick={() => setMobileOpen(false)} className="text-center min-w-0">
               <p className="text-sm font-bold truncate max-w-[150px] [@media(max-height:700px)]:text-xs">{user?.full_name || "Usuário"}</p>
               <p className="text-xs text-muted-foreground truncate max-w-[150px] [@media(max-height:700px)]:text-[10px]">
                 {user?.job_title || roleLabels[user?.role] || "Usuário"}
               </p>
-            </div>
+            </Link>
 
             <div className="flex items-center justify-center gap-1.5">
               <span className={`text-2xl font-extrabold leading-none [@media(max-height:700px)]:text-xl ${isLeader ? "text-amber-500" : "text-primary"}`}>
@@ -149,7 +210,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
               )}
             </div>
           </div>
-        </Link>
+        </div>
 
         {topTools.length > 0 && (
           <div className="px-1">

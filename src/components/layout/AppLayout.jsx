@@ -5,13 +5,16 @@ import NotificationBell from "./NotificationBell";
 import ThemeToggle from "@/components/ThemeToggle";
 import AchievementModal from "@/components/gamification/AchievementModal";
 import LeaderModal from "@/components/gamification/LeaderModal";
+import PrizeAlertModal from "@/components/gamification/PrizeAlertModal";
 import { useAchievementCelebration } from "@/lib/useAchievementCelebration";
 import { useLeaderCelebration } from "@/lib/useLeaderCelebration";
+import { usePrizeAlertCelebration } from "@/lib/usePrizeAlerts";
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { current: currentAchievement, dismiss: dismissAchievement } = useAchievementCelebration();
   const { current: leaderCelebration, dismiss: dismissLeaderCelebration } = useLeaderCelebration();
+  const { current: prizeAlert, dismiss: dismissPrizeAlert } = usePrizeAlertCelebration();
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,8 +29,9 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
-      <AchievementModal achievement={leaderCelebration ? null : currentAchievement} onClose={dismissAchievement} />
+      <AchievementModal achievement={leaderCelebration || prizeAlert ? null : currentAchievement} onClose={dismissAchievement} />
       <LeaderModal celebration={leaderCelebration} onClose={dismissLeaderCelebration} />
+      <PrizeAlertModal alert={leaderCelebration ? null : prizeAlert} onClose={dismissPrizeAlert} />
     </div>
   );
 }
